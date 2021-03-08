@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>ECMA6 audio stream</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-BmbxuPwQa2lc/FVzBcNJ7UAyJxM6wuqIj61tLrc4wSX0szH/Ev+nYRRuWlolflfl" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta2/dist/js/bootstrap.bundle.min.js" integrity="sha384-b5kHyXgcpbZJO/tY9Ul7kGkf1S0CWuKcCD38l8YkeH8z8QjE0GmW1gYU5S9FOnJ0" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.2/css/all.min.css" integrity="sha512-HK5fgLBL+xu6dm/Ii3z4xhlSUyZgTT9tuc/hSrtw6uzJOvgRr2a9jyxxT1ely+B+xFAmJKVSTbpM/CuL7qxO8w==" crossorigin="anonymous" />
+    <script
+            src="https://code.jquery.com/jquery-3.6.0.min.js"
+            integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4="
+            crossorigin="anonymous"></script>
+
+</head>
+<body>
+    <div class="d-flex justify-content-center bd-highlight mb-3">
+        <div class="p-2 bd-highlight">
+            <button class="btn btn-default bg-primary text-light" id="record" onclick="startRecord()">
+                <i class="fa fa-circle text-danger"></i> Gravar
+            </button>
+        </div>
+        <div class="p-2 bd-highlight ">
+            <button class="btn btn-default bg-primary text-light" id="stop" disabled onclick="stopRecord()">
+                <i class="fa fa-square"></i> Parar
+            </button>
+        </div>
+        <div class="p-2 bd-highlight ">
+            <button class="btn btn-default bg-primary text-light" id="play" disabled onclick="playRecord()">
+                <i class="fa fa-play text-success"></i> Play
+            </button>
+        </div>
+        <div class="p-2 bd-highlight ">
+            <button class="btn btn-default bg-primary text-light" id="confirm" disabled onclick="send()">
+                <i class="fa fa-check text-success"></i> Enviar
+            </button>
+        </div>
+    </div>
+    <div id="sent-audios" class="d-flex justify-content-center bd-highlight mb-3">
+
+    </div>
+
+    <script>
+        const recordAudio = () =>
+            new Promise(async resolve => {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                const mediaRecorder = new MediaRecorder(stream);
+                const audioChunks = [];
+
+                mediaRecorder.addEventListener("dataavailable", event => {
+                    audioChunks.push(event.data);
+                });
+
+
+                const start = () => mediaRecorder.start();
+
+                const stop = () =>
+                    new Promise(resolve => {
+                        mediaRecorder.addEventListener("stop", () => {
+                            const audioBlob = new Blob(audioChunks, {
+                                'type': 'audio/mp3'
+                            });
+                            const audioUrl = URL.createObjectURL(audioBlob);
+                            const audio = new Audio(audioUrl);
+                            const play = () => audio.play();
+
+                            resolve({ audioBlob, audioUrl, play });
+                        });
+                        mediaRecorder.stop();
+                    });
+
+                resolve({ start, stop });
+            });
+
+        let recorder = null;
+        let audio = null;
+        const startRecord = async() => {
+            $('#stop').prop('disabled', false);
+            $('#play').prop('disabled', true);
+            $('#confirm').prop('disabled', true);
+            recorder = await recordAudio();
+            recorder.start();
+        }
+        const stopRecord = async() => {
+            audio = await recorder.stop();
+            $('#stop').prop('disabled', true);
+            $('#play').prop('disabled', false);
+            $('#confirm').prop('disabled', false);
+        }
+        const playRecord = async() => {
+            audio.play();
+        }
+        const send = async() =>{
+            let newAudio = document.createElement("AUDIO");
+            newAudio.setAttribute("src", audio.audioUrl);
+            newAudio.setAttribute("controls", "controls");
+            document.getElementById("sent-audios").appendChild(newAudio);
+
+        }
+
+
+    </script>
+</body>
+</html>
